@@ -1,0 +1,12 @@
+[wrap-file]
+directory = nng-1.5.2
+source_url = https://github.com/nanomsg/nng/archive/v1.5.2.tar.gz
+source_filename = nng-1.5.2.tar.gz
+source_hash = f8b25ab86738864b1f2e3128e8badab581510fa8085ff5ca9bb980d317334c46
+patch_filename = nng_1.5.2-2_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/nng_1.5.2-2/get_patch
+patch_hash = da839f8f27e42239d6aeabf260e9cde55f093e96765e01e2bb748a03353c5c2a
+wrapdb_version = 1.5.2-2
+
+[provide]
+nng = nng_dep

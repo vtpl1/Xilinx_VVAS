@@ -1,0 +1,1 @@
+./build_install_vvas.sh TARGET=PCIE PLATFORM=V70 ENABLE_XRM=0 ENABLE_XRM_PLG=0

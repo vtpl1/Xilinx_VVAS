@@ -208,4 +208,4 @@ configure_file(output : 'config.h', configuration : cdata)
 vvas_config_headers = ['build/config.h', '../VERSION']
 install_headers(vvas_config_headers, subdir : 'vvas/')
 
-run_command(python3, '-c', 'import shutil; shutil.copy("../hooks/pre-commit.hook", "../.git/hooks/pre-commit")', check:true)
+#run_command(python3, '-c', 'import shutil; shutil.copy("../hooks/pre-commit.hook", "../.git/hooks/pre-commit")', check:true)

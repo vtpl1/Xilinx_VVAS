@@ -72,6 +72,12 @@ else
   error('not supporting host machine families other than x86_64 & aarch64')
 endif
 
+#Enabling Macro definition for Glib based vvas-core/utils
+if get_option('vvas_core_utils') == 'GLIB'
+  add_project_arguments('-DVVAS_GLIB_UTILS', language : 'c')
+  add_project_arguments('-DVVAS_GLIB_UTILS', language : 'cpp')
+endif
+
 warning_flags = [
   '-Wmissing-declarations',
   '-Wredundant-decls',
@@ -141,6 +147,12 @@ gstvvasinfermeta_dep = dependency('vvas-gst-plugins', version : '>= 1.0', requir
 # External dependency
 jansson_dep = dependency('jansson', version : '>= 2.8', required: true)
 
+# nanomsg dependency
+nanomsgdeps = [dependency('nng')]
+nng_proj = subproject('nng')
+nng_dep = nng_proj.get_variable('nng_dep')
+
+
 if host_machine.cpu_family() == 'aarch64'
   opencv_dep = dependency('opencv4', version : '>=4.4.0', required: true)
 endif
@@ -164,14 +176,14 @@ pkgconfig = import('pkgconfig')
 
 if host_machine.cpu_family() == 'x86_64'
   # common kernel libraries for PCIe platforms
-  foreach kernel : ['utils']
+  foreach kernel : ['utils', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
     if not get_option(kernel).disabled()
       subdir(kernel)
     endif
   endforeach
 elif host_machine.cpu_family() == 'aarch64'
   # common kernel libraries for embedded platforms
-  foreach kernel : ['utils']
+  foreach kernel : ['utils', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
     if not get_option(kernel).disabled()
       subdir(kernel)
     endif

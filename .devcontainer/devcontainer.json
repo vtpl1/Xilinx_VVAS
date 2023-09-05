@@ -1,0 +1,91 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.194.3/containers/docker-existing-dockerfile
+{
+	"name": "Existing Dockerfile",
+	// Sets the run context to one level up instead of the .devcontainer folder.
+	"context": "..",
+	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+	// "dockerFile": "../gpu.dev.cuda102.dockerfile",
+	//"dockerFile": "../gpu.dev.cuda113.dockerfile",
+	"dockerFile": "../cpu.amd.dev.dockerfile",
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"terminal.integrated.profiles.windows": {
+			"PowerShell -NoProfile": {
+				"source": "PowerShell",
+				"args": [
+					"-NoProfile"
+				]
+			}
+		},
+		"terminal.integrated.profiles.linux": {
+			"bash": {
+				"path": "bash",
+				"args": [
+					"-l"
+				]
+			}
+		},
+		"terminal.integrated.defaultProfile.linux": "bash",
+		"python.pythonPath": "/usr/bin/python3",
+		"python.linting.enabled": true,
+		"python.linting.pylintEnabled": true,
+		"python.formatting.autopep8Path": "/usr/local/bin/autopep8",
+		"python.formatting.blackPath": "/usr/local/bin/black",
+		"python.formatting.yapfPath": "/usr/local/bin/yapf",
+		"python.linting.banditPath": "/usr/local/bin/bandit",
+		"python.linting.flake8Path": "/usr/local/bin/flake8",
+		"python.linting.mypyPath": "/usr/local/bin/mypy",
+		"python.linting.pycodestylePath": "/usr/local/bin/pycodestyle",
+		"python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
+		"python.linting.pylintPath": "/usr/local/bin/pylint",
+		"python.testing.pytestEnabled": false,
+		"python.testing.unittestEnabled": false,
+		"extensions.autoCheckUpdates": false,
+		"extensions.autoUpdate": false
+	},
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"gruntfuggly.todo-tree",
+		"wmaurer.change-case",
+		"ms-python.python",
+	],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Uncomment the next line to run commands after the container is created - for example installing curl.
+	// "postCreateCommand": "apt-get update && apt-get install -y curl",
+	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust
+	"runArgs": [
+		"--device=/dev/xclmgmt49408",
+		"--device=/dev/dri/renderD128",
+		"-v",
+		"/dev/shm:/dev/shm",
+		"-v",
+		"/opt/xilinx/dsa:/opt/xilinx/dsa",
+		"-v",
+		"/opt/xilinx/overlaybins:/opt/xilinx/overlaybins",
+		"-e",
+		"USER=amd",
+		"-e",
+		"UID=1000",
+		"-e",
+		"GID=1000",
+		"-e",
+		"VERSION=latest",
+		"--ipc=host",
+		"-v",
+		"/tmp/.X11-unix:/tmp/.X11-unix",
+		"-v",
+		"/home/amd/.Xauthority:/tmp/.Xauthority",
+		"-e",
+		"DISPLAY=${env:DISPLAY}"
+	],
+	"containerEnv": {
+		"LD_LIBRARY_PATH": "${containerWorkspaceFolder}/lib_module_dependencies"
+	},
+	// Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker.
+	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
+	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
+	// "remoteUser": "amd",
+	// "containerUser": "amd"
+}

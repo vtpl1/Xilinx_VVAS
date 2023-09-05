@@ -242,6 +242,44 @@ prediction_copy (const GstInferencePrediction * self)
   return other;
 }
 
+static void
+prediction_scale_pose14pt_ip (const GstInferencePrediction * self,
+    gdouble hfactor, gdouble vfactor)
+{
+
+  gint num;
+  Pose14Pt *self_pose14pt = (Pose14Pt *) & self->prediction.pose14pt;
+  Pointf *self_point_ptr = (Pointf *) self_pose14pt;
+
+  for (num = 0; num < NUM_POSE_POINT; num++) {
+    self_point_ptr->x = nearbyintf (self_point_ptr->x * hfactor);
+    self_point_ptr->y = nearbyintf (self_point_ptr->y * vfactor);
+
+    self_point_ptr++;
+  }
+}
+
+static void
+prediction_scale_pose14pt (const GstInferencePrediction * self,
+    GstInferencePrediction * dest, gdouble hfactor, gdouble vfactor)
+{
+
+  gint num;
+  Pose14Pt *self_pose14pt = (Pose14Pt *) & self->prediction.pose14pt;
+  Pointf *self_point_ptr = (Pointf *) self_pose14pt;
+  Pose14Pt *dest_pose14pt = (Pose14Pt *) & dest->prediction.pose14pt;
+  Pointf *dest_point_ptr = (Pointf *) dest_pose14pt;
+
+  for (num = 0; num < NUM_POSE_POINT; num++) {
+    dest_point_ptr->x = nearbyintf (self_point_ptr->x * hfactor);
+    dest_point_ptr->y = nearbyintf (self_point_ptr->y * vfactor);
+
+    self_point_ptr++;
+    dest_point_ptr++;
+  }
+}
+
+
 static gpointer
 node_copy (gconstpointer node, gpointer data)
 {
@@ -617,6 +655,11 @@ prediction_scale (const GstInferencePrediction * self, GstVideoInfo * to,
   dest->prediction.bbox.height =
       nearbyintf (self->prediction.bbox.height * vfactor);
 
+
+    if (self->prediction.model_class == VVAS_XCLASS_POSEDETECT) {
+    prediction_scale_pose14pt (self, dest, hfactor, vfactor);
+  }
+
   GST_LOG ("scaled bbox: %dx%d@%dx%d -> %dx%d@%dx%d",
       self->prediction.bbox.x, self->prediction.bbox.y,
       self->prediction.bbox.width, self->prediction.bbox.height,
@@ -643,6 +686,9 @@ prediction_scale_ip (GstInferencePrediction * self, GstVideoInfo * to,
 
   self->prediction.bbox.width = self->prediction.bbox.width * hfactor;
   self->prediction.bbox.height = self->prediction.bbox.height * vfactor;
+    if (self->prediction.model_class == VVAS_XCLASS_POSEDETECT) {
+    prediction_scale_pose14pt_ip (self, hfactor, vfactor);
+  }
 }
 
 static gboolean

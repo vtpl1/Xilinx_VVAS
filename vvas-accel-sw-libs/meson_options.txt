@@ -17,3 +17,7 @@
 
 # Feature options for plugins without external deps
 option('utils', type : 'feature', value : 'auto')
+option('vvas_vtpl_people_fall', type : 'feature', value : 'auto')
+option('vvas_vtpl_fire_smoke', type : 'feature', value : 'auto')
+option('vms_live_event_sender', type : 'feature', value : 'auto')
+option('vvas_core_utils', type : 'string', value : 'GLIB')

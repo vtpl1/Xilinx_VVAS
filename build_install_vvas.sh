@@ -215,7 +215,7 @@ else # TARGET == PCIE
 
   if [ $INSTALL_ACCEL_SW = true ]; then
     cd $BASEDIR/vvas-accel-sw-libs
-    $MESON build --prefix $PREFIX --libdir $LIB
+    $MESON build --prefix $PREFIX --libdir $LIB -Dvvas_core_utils=$VVAS_CORE_UTILS
     cd build
     ninja
     sudo ninja install
