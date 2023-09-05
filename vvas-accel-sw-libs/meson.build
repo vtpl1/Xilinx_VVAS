@@ -176,14 +176,14 @@ pkgconfig = import('pkgconfig')
 
 if host_machine.cpu_family() == 'x86_64'
   # common kernel libraries for PCIe platforms
-  foreach kernel : ['utils', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
+  foreach kernel : ['utils', 'vms_live_event_sender', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
     if not get_option(kernel).disabled()
       subdir(kernel)
     endif
   endforeach
 elif host_machine.cpu_family() == 'aarch64'
   # common kernel libraries for embedded platforms
-  foreach kernel : ['utils', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
+  foreach kernel : ['utils', 'vms_live_event_sender', 'vvas_vtpl_people_fall', 'vvas_vtpl_fire_smoke']
     if not get_option(kernel).disabled()
       subdir(kernel)
     endif

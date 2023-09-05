@@ -28,6 +28,6 @@ vtpl_fire_smoke_event_generator = library('vvas_vtpl_fire_smoke',
     gstvvasinfermeta_dep, 
     vvascore_dep
   ],
-  # link_with : vms_live_event_sender_lib,
+  link_with : vms_live_event_sender_lib,
   install : true,
 )
