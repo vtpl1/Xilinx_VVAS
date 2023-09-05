@@ -3,7 +3,7 @@
 BasedOnStyle: LLVM
 IndentWidth: 2
 BreakBeforeBraces: Linux
-ColumnLimit:     120
+ColumnLimit:     80
 SortIncludes: true
 ---
 Language: Cpp

@@ -7,7 +7,8 @@
 #define byte_order_utils_h
 // #include <Poco/ByteOrder.h>
 #include <vector>
-template <typename R> R check_and_read_network(std::vector<uint8_t>& data_in, int32_t& offset)
+template <typename R>
+R check_and_read_network(std::vector<uint8_t>& data_in, int32_t& offset)
 {
   // NOLINTNEXTLINE(google-readability-casting,cppcoreguidelines-pro-bounds-pointer-arithmetic)
   //   R ret = Poco::ByteOrder::fromNetwork(static_cast<R>(*(R*)(data_in.data()
@@ -16,7 +17,9 @@ template <typename R> R check_and_read_network(std::vector<uint8_t>& data_in, in
   return ret;
 }
 
-template <typename T> void check_and_write_network(std::vector<uint8_t>& data_out, int32_t& offset, T val)
+template <typename T>
+void check_and_write_network(std::vector<uint8_t>& data_out, int32_t& offset,
+                             T val)
 {
   // NOLINTNEXTLINE(google-readability-casting,cppcoreguidelines-pro-bounds-pointer-arithmetic)
   //   *(T*)(data_out.data() + offset) = Poco::ByteOrder::toNetwork(val);

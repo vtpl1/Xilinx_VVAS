@@ -21,4 +21,6 @@
 #include <vvas_core/vvas_video.h>
 #include <vvas_core/vvas_video_priv.h>
 
-VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx, int8_t mbank_idx, VVASFrame* vframe);
+VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx,
+                                               int8_t mbank_idx,
+                                               VVASFrame* vframe);

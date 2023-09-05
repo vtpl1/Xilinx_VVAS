@@ -16,11 +16,7 @@
 #include "string.h"
 #include "time.h"
 
-// #include "turbojpeg.h"
-// #define LOGGER(message) std::cout << "[" << __FUNCTION__ << "] " << message
-// << std::endl
-
-VmsLiveEventSender::VmsLiveEventSender(Job job) : _job(job)
+VmsLiveEventSender::VmsLiveEventSender()
 {
   _event_output.appId = _job.appID;
   _event_output.channelId = _job.channelID;
@@ -47,12 +43,12 @@ void VmsLiveEventSender::start()
   }
 }
 
-void VmsLiveEventSender::sendEventFromEncodedString(uint8_t* encoded_string, int16_t objectProperty1,
-                                                    int16_t objectProperty2, int16_t objectProperty3,
-                                                    int16_t objectProperty4, std::string objectInfo,
-                                                    std::string eventMsg, std::string eventAction, int32_t appID,
-                                                    std::string vasID, int64_t time_stamp, std::string clipName,
-                                                    int32_t numZones, int32_t zoneId)
+void VmsLiveEventSender::sendEventFromEncodedString(
+    uint8_t* encoded_string, int16_t objectProperty1, int16_t objectProperty2,
+    int16_t objectProperty3, int16_t objectProperty4, std::string objectInfo,
+    std::string eventMsg, std::string eventAction, int32_t appID,
+    std::string vasID, int64_t time_stamp, std::string clipName,
+    int32_t numZones, int32_t zoneId)
 {
   int rv;
   if ((rv = nng_dial(*_sock, _url.c_str(), NULL, 0)) != 0) {

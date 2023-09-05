@@ -42,7 +42,8 @@ using namespace std;
 uint64_t frame_id = 0;
 int event_generation_counter = 0;
 
-static int vtpl_event_generator(VVASFrame* input, char* label, float confidence, int x, int y, int w, int h)
+static int vtpl_event_generator(VVASFrame* input, char* label, float confidence,
+                                int x, int y, int w, int h)
 {
   cout << "---------------------------------------" << endl;
   // bool is_smoke_event = false;
@@ -62,7 +63,8 @@ int32_t xlnx_kernel_init(VVASKernel* handle) { return 0; }
 
 uint32_t xlnx_kernel_deinit(VVASKernel* handle) { return 0; }
 
-uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_NUM_OBJECT],
+uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
+                           VVASFrame* input[MAX_NUM_OBJECT],
                            VVASFrame* output[MAX_NUM_OBJECT])
 {
   GstInferenceMeta* infer_meta = NULL;
@@ -81,8 +83,8 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
   float se_conf;
   char* slabel;
 
-  infer_meta =
-      ((GstInferenceMeta*)gst_buffer_get_meta((GstBuffer*)input[0]->app_priv, gst_inference_meta_api_get_type()));
+  infer_meta = ((GstInferenceMeta*)gst_buffer_get_meta(
+      (GstBuffer*)input[0]->app_priv, gst_inference_meta_api_get_type()));
 
   if ((handle) && (!strcmp((char*)handle->name, "libkrnl_PF_LEVEL_1"))) {
     ++frame_id;
@@ -94,11 +96,13 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
     pred_head_ptr = gst_inference_prediction_get_children(root);
 
     /* Iterate through the immediate child predictions */
-    for (child_predictions = pred_head_ptr; child_predictions; child_predictions = g_slist_next(child_predictions)) {
+    for (child_predictions = pred_head_ptr; child_predictions;
+         child_predictions = g_slist_next(child_predictions)) {
       child = (GstInferencePrediction*)child_predictions->data;
 
       /* On each children, iterate through the different associated classes */
-      for (classes = (GList*)child->prediction.classifications; classes; classes = g_list_next(classes)) {
+      for (classes = (GList*)child->prediction.classifications; classes;
+           classes = g_list_next(classes)) {
         guint x, y, w, h;
         classification = (GstInferenceClassification*)classes->data;
 

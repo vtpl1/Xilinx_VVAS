@@ -43,7 +43,9 @@ static VvasVideoFormat get_vvas_video_format(VVASVideoFormat fmt)
   return ret;
 }
 
-VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx, int8_t mbank_idx, VVASFrame* vframe)
+VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx,
+                                               int8_t mbank_idx,
+                                               VVASFrame* vframe)
 {
   VvasVideoFramePriv* priv = NULL;
   VvasVideoInfo vinfo = {0};
@@ -78,13 +80,14 @@ VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx, int8_t mba
 
   for (pidx = 0; pidx < priv->num_planes; pidx++) {
     if (vvas_ctx->dev_handle) {
-      priv->planes[pidx].boh = vvas_xrt_create_sub_bo(priv->boh, priv->planes[pidx].size, priv->planes[pidx].offset);
+      priv->planes[pidx].boh = vvas_xrt_create_sub_bo(
+          priv->boh, priv->planes[pidx].size, priv->planes[pidx].offset);
     }
     priv->planes[pidx].data = vframe->vaddr[pidx];
   }
 
-  /* Using the 0th index plane data ptr know if the virtual address is populated,
-   * in which case it will be host buffer.
+  /* Using the 0th index plane data ptr know if the virtual address is
+   * populated, in which case it will be host buffer.
    */
   if (!priv->planes[0].data) {
     priv->mem_info.alloc_type = VVAS_ALLOC_TYPE_CMA;
@@ -93,7 +96,8 @@ VvasVideoFrame* vvas_videoframe_from_vvasframe(VvasContext* vvas_ctx, int8_t mba
   }
 
   priv->mem_info.alloc_flags =
-      VVAS_ALLOC_FLAG_NONE; /* currently gstreamer allocator supports both device and host memory allocation */
+      VVAS_ALLOC_FLAG_NONE; /* currently gstreamer allocator supports both
+                               device and host memory allocation */
   priv->mem_info.mbank_idx = mbank_idx;
   priv->mem_info.sync_flags = VVAS_DATA_SYNC_NONE;
   priv->mem_info.map_flags = VVAS_DATA_MAP_NONE;

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "vms_live_event_sender.h"
 #include <bits/stdc++.h>
 #include <cmath>
 #include <cstdlib>
@@ -33,6 +34,7 @@
 int event_generation_counter = 0, event_generation_counter_spnet = 0;
 uint64_t frame_id = 0;
 int prev_pub_event_frame_id = 0, prev_pub_event_frame_id_spnet = 0;
+VmsLiveEventSender o_vms_live_event_sender;
 
 // Define the veriables.
 typedef enum { INFER_LEVEL_1 = 1, INFER_LEVEL_2 } eInferCasecaseLevel;
@@ -45,7 +47,8 @@ using namespace std;
 #define MAX_ALLOWED_CLASS 20
 #define MAX_ALLOWED_LABELS 20
 
-static int vtpl_event_generator(char* label, int x, int y, int w, int h, uint64_t frame_id)
+static int vtpl_event_generator(char* label, int x, int y, int w, int h,
+                                uint64_t frame_id)
 {
   cout << "Fall event published: " << frame_id << endl;
   cout << "Classification = " << label << endl;
@@ -102,7 +105,8 @@ int32_t xlnx_kernel_init(VVASKernel* handle) { return 0; }
 
 uint32_t xlnx_kernel_deinit(VVASKernel* handle) { return 0; }
 
-uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_NUM_OBJECT],
+uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
+                           VVASFrame* input[MAX_NUM_OBJECT],
                            VVASFrame* output[MAX_NUM_OBJECT])
 {
   GstInferenceMeta* infer_meta = NULL;
@@ -123,8 +127,8 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
   bool flag = false, PersonNoCollapseLevel_1 = false;
   bool PersonCollapseLevel_2 = false;
 
-  infer_meta =
-      ((GstInferenceMeta*)gst_buffer_get_meta((GstBuffer*)input[0]->app_priv, gst_inference_meta_api_get_type()));
+  infer_meta = ((GstInferenceMeta*)gst_buffer_get_meta(
+      (GstBuffer*)input[0]->app_priv, gst_inference_meta_api_get_type()));
 
   /*
    * Note: IN JSON FILE NAME SHOULD BE GIVEN AS "PF_LEVEL_1"
@@ -142,8 +146,10 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
     root = infer_meta->prediction;
     pred_head_ptr = gst_inference_prediction_get_children(root);
 
-    // Checking multiple consicutive frames fall detection based on detector resutls
-    for (child_predictions = pred_head_ptr; child_predictions; child_predictions = g_slist_next(child_predictions)) {
+    // Checking multiple consicutive frames fall detection based on detector
+    // resutls
+    for (child_predictions = pred_head_ptr; child_predictions;
+         child_predictions = g_slist_next(child_predictions)) {
       child = (GstInferencePrediction*)child_predictions->data;
 
       x = child->prediction.bbox.x;
@@ -153,11 +159,13 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
 
       aspcet_ratio = w / h;
 
-      for (classes = (GList*)child->prediction.classifications; classes; classes = g_list_next(classes)) {
+      for (classes = (GList*)child->prediction.classifications; classes;
+           classes = g_list_next(classes)) {
         classification = (GstInferenceClassification*)classes->data;
         if (aspcet_ratio <= 0.7) {
           free(classification->classification.class_label);
-          classification->classification.class_label = strdup("Person/NoCollapse");
+          classification->classification.class_label =
+              strdup("Person/NoCollapse");
         }
 
         /* check for Level 1 if the frame is "NO COLLAPSE FRAME"*/
@@ -172,7 +180,8 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
          * Decrementing Event Generation Counter
          */
         event_generation_counter--;
-        // cout << "No COLLAPSE FRAME level 1 " << event_generation_counter << endl;
+        // cout << "No COLLAPSE FRAME level 1 " << event_generation_counter <<
+        // endl;
 
         if (event_generation_counter < 0) {
           event_generation_counter = 0;
@@ -185,9 +194,12 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
         // Detector detecting person collapsed -- Calling Pose estimation.
         child_sp_net = NULL;
 
-        for (child_predictions_sp_net = gst_inference_prediction_get_children(child); child_predictions_sp_net;
-             child_predictions_sp_net = g_slist_next(child_predictions_sp_net)) {
-          child_sp_net = (GstInferencePrediction*)child_predictions_sp_net->data;
+        for (child_predictions_sp_net =
+                 gst_inference_prediction_get_children(child);
+             child_predictions_sp_net; child_predictions_sp_net = g_slist_next(
+                                           child_predictions_sp_net)) {
+          child_sp_net =
+              (GstInferencePrediction*)child_predictions_sp_net->data;
           Pose14Pt pose = child_sp_net->prediction.pose14pt;
 
           retfind_rect_from_pose(pose, slope);
@@ -198,16 +210,19 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
             flag = false;
           }
 
-          for (classes = (GList*)child->prediction.classifications; classes; classes = g_list_next(classes)) {
+          for (classes = (GList*)child->prediction.classifications; classes;
+               classes = g_list_next(classes)) {
             classification = (GstInferenceClassification*)classes->data;
 
             if (flag) {
               free(classification->classification.class_label);
-              classification->classification.class_label = strdup("Person/Collapse");
+              classification->classification.class_label =
+                  strdup("Person/Collapse");
               // label = classification->classification.class_label;
             } else {
               free(classification->classification.class_label);
-              classification->classification.class_label = strdup("Person/NoCollapse");
+              classification->classification.class_label =
+                  strdup("Person/NoCollapse");
               // label = classification->classification.class_label;
               // flag = false;
             }
@@ -217,14 +232,18 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
         if ((eInferlevel == INFER_LEVEL_2) && (true == PersonCollapseLevel_2)) {
 
           /* In Frame we detected atleast one collapse so frame is
-           * considered as "COLLAPSE FRAME" Incrementing Event Generation counter
+           * considered as "COLLAPSE FRAME" Incrementing Event Generation
+           * counter
            */
           event_generation_counter++;
-          // cout << "COLLAPSE FRAME level 2 " << event_generation_counter << endl;
-        } else if ((eInferlevel == INFER_LEVEL_2) && (false == PersonCollapseLevel_2)) {
+          // cout << "COLLAPSE FRAME level 2 " << event_generation_counter <<
+          // endl;
+        } else if ((eInferlevel == INFER_LEVEL_2) &&
+                   (false == PersonCollapseLevel_2)) {
 
           /* In Frame we detected atleast one collapse so frame is
-           * considered as "NO COLLAPSE FRAME" Decrementing Event Generation counter
+           * considered as "NO COLLAPSE FRAME" Decrementing Event Generation
+           * counter
            */
           event_generation_counter--;
           // cout << "No COLLAPSE FRAME " << event_generation_counter << endl;
@@ -257,12 +276,15 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start, VVASFrame* input[MAX_N
       int event_gap = frame_id - prev_pub_event_frame_id;
 
       // cout << "Event gap " << event_gap << endl;
+      o_vms_live_event_sender.start();
+      o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
 
       if (event_gap >= inter_event_generation_th) {
         prev_pub_event_frame_id = frame_id;
         char* label = strdup("Person/Collapse");
         cout << "---------------------------------------" << endl;
-        cout << "Event Gap: [" << event_gap << "/" << inter_event_generation_th << "]" << endl;
+        cout << "Event Gap: [" << event_gap << "/" << inter_event_generation_th
+             << "]" << endl;
         vtpl_event_generator(label, x, y, w, h, frame_id);
         cout << "---------------------------------------" << endl;
       }

@@ -7,9 +7,10 @@
 // #include "byte_order_utils.h"
 #include <netinet/in.h>
 
-const int EventOutputV200::size = sizeof(int16_t) + sizeof(int64_t) + sizeof(int32_t) + sizeof(int32_t) +
-                                  sizeof(int32_t) + sizeof(int32_t) + sizeof(uint8_t) + sizeof(uint8_t) +
-                                  sizeof(uint8_t);
+const int EventOutputV200::size =
+    sizeof(int16_t) + sizeof(int64_t) + sizeof(int32_t) + sizeof(int32_t) +
+    sizeof(int32_t) + sizeof(int32_t) + sizeof(uint8_t) + sizeof(uint8_t) +
+    sizeof(uint8_t);
 
 char* EventOutputV200::toNetwork()
 {
