@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "vms_live_event_sender.h"
 #include <cstdlib>
 #include <fstream>
 #include <gst/gst.h>
@@ -41,6 +42,7 @@ using namespace std;
 
 uint64_t frame_id = 0;
 int event_generation_counter = 0;
+VmsLiveEventSender o_vms_live_event_sender;
 
 static int vtpl_event_generator(VVASFrame* input, char* label, float confidence,
                                 int x, int y, int w, int h)
@@ -140,13 +142,19 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
     }
   }
 
-  if (!is_fire_event)
-    if (event_generation_counter > 0)
+  if (!is_fire_event) {
+    if (event_generation_counter > 0) {
       event_generation_counter--;
+      o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
+    }
+  }
 
-  if (!is_smoke_event)
-    if (event_generation_counter > 0)
+  if (!is_smoke_event) {
+    if (event_generation_counter > 0) {
       event_generation_counter--;
+      o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
+    }
+  }
 
   if (fe_w > 0)
     vtpl_event_generator(input[0], flabel, fe_conf, fe_x, fe_y, fe_w, fe_h);

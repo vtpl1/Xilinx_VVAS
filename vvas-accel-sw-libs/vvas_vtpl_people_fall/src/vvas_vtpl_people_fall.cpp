@@ -276,10 +276,10 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
       int event_gap = frame_id - prev_pub_event_frame_id;
 
       // cout << "Event gap " << event_gap << endl;
-      o_vms_live_event_sender.start();
-      o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
 
       if (event_gap >= inter_event_generation_th) {
+        // o_vms_live_event_sender.start();
+        o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
         prev_pub_event_frame_id = frame_id;
         char* label = strdup("Person/Collapse");
         cout << "---------------------------------------" << endl;
