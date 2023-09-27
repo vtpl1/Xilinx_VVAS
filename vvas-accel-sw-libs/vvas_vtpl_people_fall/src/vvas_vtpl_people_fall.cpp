@@ -15,6 +15,7 @@
  */
 #include "vms_live_event_sender.h"
 #include <bits/stdc++.h>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -31,11 +32,6 @@
 #include <string.h>
 #include <vvas/vvas_kernel.h>
 
-int event_generation_counter = 0, event_generation_counter_spnet = 0;
-uint64_t frame_id = 0;
-int prev_pub_event_frame_id = 0, prev_pub_event_frame_id_spnet = 0;
-VmsLiveEventSender o_vms_live_event_sender;
-
 // Define the veriables.
 typedef enum { INFER_LEVEL_1 = 1, INFER_LEVEL_2 } eInferCasecaseLevel;
 
@@ -47,15 +43,29 @@ using namespace std;
 #define MAX_ALLOWED_CLASS 20
 #define MAX_ALLOWED_LABELS 20
 
+typedef struct _VtplDataStructure {
+  VmsLiveEventSender o_vms_live_event_sender;
+  int ch_id;
+  int person_collapse_event_generation_counter = 0,
+      person_collapse_event_generation_counter_spnet = 0;
+  uint64_t frame_id = 0;
+  int person_collapse_inter_event_generation_counter = 0;
+  int prev_pub_event_frame_id = 0, prev_pub_event_frame_id_spnet = 0;
+  int person_collapse_event_generation_frame_number_th = 10; // #frame
+  int person_collapse_inter_event_generation_gap_frame_number_th = 20;
+
+  bool is_first_person_collapse_event = true;
+} VtplDataStructure;
+
 static int vtpl_event_generator(char* label, int x, int y, int w, int h,
                                 uint64_t frame_id)
 {
-  cout << "Fall event published: " << frame_id << endl;
-  cout << "Classification = " << label << endl;
-  cout << "x = " << x << "; "
-       << "y = " << y << "; "
-       << "w = " << w << "; "
-       << "h = " << h << ";\n";
+  // cout << " Fall event published: " << frame_id << endl;
+  // cout << "Classification = " << label << endl;
+  // cout << "x = " << x << "; "
+  //      << "y = " << y << "; "
+  //      << "w = " << w << "; "
+  //      << "h = " << h << ";\n";
 
   return 0;
 }
@@ -101,32 +111,73 @@ void retfind_rect_from_pose(Pose14Pt pose, float* p)
 }
 
 extern "C" {
-int32_t xlnx_kernel_init(VVASKernel* handle) { return 0; }
+int32_t xlnx_kernel_init(VVASKernel* handle)
+{
+  VtplDataStructure* p_vtpl_data_structure = new VtplDataStructure();
+  handle->kernel_priv = p_vtpl_data_structure;
+  return 0;
+}
 
-uint32_t xlnx_kernel_deinit(VVASKernel* handle) { return 0; }
+uint32_t xlnx_kernel_deinit(VVASKernel* handle)
+{
+  if (handle->kernel_priv == nullptr) {
+    return 0;
+  }
+  delete ((VtplDataStructure*)handle->kernel_priv);
+  handle->kernel_priv = nullptr;
+  return 0;
+}
 
 uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
                            VVASFrame* input[MAX_NUM_OBJECT],
                            VVASFrame* output[MAX_NUM_OBJECT])
 {
+
+  // std::cout << "-------------Here 1" << std::endl;
+  VtplDataStructure* p_vtpl_data_structure =
+      (VtplDataStructure*)handle->kernel_priv;
+
+  p_vtpl_data_structure->frame_id++;
+  // std::cout << "-------------Here 2" << std::endl;
+
+  uint32_t img_height = input[0]->props.height;
+  uint32_t img_width = input[0]->props.width;
+  uint32_t stride = input[0]->props.stride;
+  uint8_t* in_plane1 = (uint8_t*)input[0]->vaddr[0];
+  VVASVideoFormat fmt = input[0]->props.fmt;
+
+  // std::cout << "width: " << img_width << " height: " << img_height
+  //           << " fmt: " << fmt << " n_planes: " << input[0]->n_planes
+  //           << " stride: " << input[0]->props.stride << std::endl;
+
+  // cv::Mat mat_dst(cv::Size(img_width, img_height), CV_8UC3, in_plane1);
+  // cv::cvtColor(mat_dst, mat_dst, cv::COLOR_BGR2RGB);
+  // cv::Mat img(mat_dst);
+
   GstInferenceMeta* infer_meta = NULL;
   GstInferencePrediction *root, *child, *child_sp_net;
   GstInferenceClassification* classification;
   GSList *child_predictions, *child_predictions_sp_net, *pred_head_ptr;
   GList* classes;
+
+  // // VtplDataStructure* p_vtpl_data_structure =
+  // //     (VtplDataStructure*)handle->kernel_priv;
+
   float aspcet_ratio = 0.0;
 
   eInferCasecaseLevel eInferlevel = INFER_LEVEL_1;
-
+  bool is_person_collapse_event = false;
   guint x = 0, y = 0, w = 0, h = 0;
-  int event_generation_th = 10;
-  int inter_event_generation_th = 20;
-  bool is_event = false;
+
+  // int event_generation_th = 10;
+  // int inter_event_generation_th = 20;
+  // bool is_event = false;
+
   float a[2];
   float* slope = (float*)&a;
   bool flag = false, PersonNoCollapseLevel_1 = false;
   bool PersonCollapseLevel_2 = false;
-
+  char* pflabel;
   infer_meta = ((GstInferenceMeta*)gst_buffer_get_meta(
       (GstBuffer*)input[0]->app_priv, gst_inference_meta_api_get_type()));
 
@@ -135,13 +186,14 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
    *       For Level1 xfilter
    */
   if ((handle) && (!strcmp((char*)handle->name, "libkrnl_PF_LEVEL_1"))) {
-    ++frame_id;
+    p_vtpl_data_structure->frame_id++;
+    // std::cout << p_vtpl_data_structure->ch_id << std::endl;
   } else if (!strcmp((char*)handle->name, "libkrnl_PF_LEVEL_2")) {
     eInferlevel = INFER_LEVEL_2;
   } else {
     GST_WARNING("Invalid Infer Level");
   }
-
+  // std::cout << "-------------Here 4" << std::endl;
   if (infer_meta) {
     root = infer_meta->prediction;
     pred_head_ptr = gst_inference_prediction_get_children(root);
@@ -162,6 +214,12 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
       for (classes = (GList*)child->prediction.classifications; classes;
            classes = g_list_next(classes)) {
         classification = (GstInferenceClassification*)classes->data;
+
+        char* label = classification->classification.class_label;
+        float confidence = classification->classification.class_prob;
+
+        // std::cout<< label << std::endl;
+
         if (aspcet_ratio <= 0.7) {
           free(classification->classification.class_label);
           classification->classification.class_label =
@@ -172,23 +230,35 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
         if ((eInferlevel == INFER_LEVEL_1) && (aspcet_ratio <= 0.7)) {
           PersonNoCollapseLevel_1 = true;
         }
-        // label = classification->classification.class_label;
+        label = classification->classification.class_label;
       }
 
       if ((eInferlevel == INFER_LEVEL_1) && (true == PersonNoCollapseLevel_1)) {
         /* At Level 1 , there is no COLLAPSE DETECTED in entire frame
          * Decrementing Event Generation Counter
          */
-        event_generation_counter--;
-        // cout << "No COLLAPSE FRAME level 1 " << event_generation_counter <<
+        p_vtpl_data_structure->person_collapse_event_generation_counter--;
+        // cout << "No COLLAPSE FRAME level 1 " << event_generation_counter
+        // <<
         // endl;
 
-        if (event_generation_counter < 0) {
-          event_generation_counter = 0;
+        if (p_vtpl_data_structure->person_collapse_event_generation_counter <
+            0) {
+          p_vtpl_data_structure->person_collapse_event_generation_counter = 0;
         }
       }
 
-      /* On each children, iterate through the different associated classes */
+      //  if(is_person_collapse_event){
+      //   p_vtpl_data_structure->person_collapse_event_generation_counter++;
+      //  }
+      //  bool is_person_collapse_event_1 = false;
+      //  if(p_vtpl_data_structure->person_collapse_event_generation_counter >=
+      //  p_vtpl_data_structure->person_collapse_event_generation_frame_number_th){
+      //   is_person_collapse_event_1 = true;
+      //  }
+
+      /* On each children, iterate through the different associated classes
+       */
       if (aspcet_ratio > 0.7) {
         /* ENABLE SECOND LEVEL INFERENCE */
         // Detector detecting person collapsed -- Calling Pose estimation.
@@ -218,6 +288,7 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
               free(classification->classification.class_label);
               classification->classification.class_label =
                   strdup("Person/Collapse");
+              is_person_collapse_event = true;
               // label = classification->classification.class_label;
             } else {
               free(classification->classification.class_label);
@@ -235,7 +306,7 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
            * considered as "COLLAPSE FRAME" Incrementing Event Generation
            * counter
            */
-          event_generation_counter++;
+          p_vtpl_data_structure->person_collapse_event_generation_counter++;
           // cout << "COLLAPSE FRAME level 2 " << event_generation_counter <<
           // endl;
         } else if ((eInferlevel == INFER_LEVEL_2) &&
@@ -245,11 +316,13 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
            * considered as "NO COLLAPSE FRAME" Decrementing Event Generation
            * counter
            */
-          event_generation_counter--;
-          // cout << "No COLLAPSE FRAME " << event_generation_counter << endl;
+          p_vtpl_data_structure->person_collapse_event_generation_counter--;
+          // cout << "No COLLAPSE FRAME " << event_generation_counter <<
+          // endl;
 
-          if (event_generation_counter < 0) {
-            event_generation_counter = 0;
+          if (p_vtpl_data_structure->person_collapse_event_generation_counter <
+              0) {
+            p_vtpl_data_structure->person_collapse_event_generation_counter = 0;
           }
         }
       } else {
@@ -257,7 +330,38 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
       }
     } /* Infer level 1 meta data loop */
   }
+  if (is_person_collapse_event) {
+    p_vtpl_data_structure->person_collapse_event_generation_counter++;
+  }
+  bool is_person_collapse_event_1 = false;
 
+  if (p_vtpl_data_structure->person_collapse_event_generation_counter >=
+      p_vtpl_data_structure
+          ->person_collapse_inter_event_generation_gap_frame_number_th) {
+    is_person_collapse_event_1 = true;
+    // p_vtpl_data_structure->person_collapse_event_generation_counter = 0;
+  }
+  bool is_final_person_collapse_event = false;
+  if (is_person_collapse_event_1 &&
+      p_vtpl_data_structure->is_first_person_collapse_event) {
+    std::cout << "+++++++++++++++++++++++++Publish first person collapse"
+              << std::endl;
+    p_vtpl_data_structure->is_first_person_collapse_event = false;
+    is_final_person_collapse_event = true;
+  }
+  if (!p_vtpl_data_structure->is_first_person_collapse_event) {
+    p_vtpl_data_structure->person_collapse_inter_event_generation_counter++;
+    if (p_vtpl_data_structure->person_collapse_inter_event_generation_counter ==
+        p_vtpl_data_structure
+            ->person_collapse_inter_event_generation_gap_frame_number_th) {
+      if (is_person_collapse_event) {
+        std::cout << "++++++++++++++++++++Next person collapse event"
+                  << std::endl;
+        is_final_person_collapse_event = true;
+      }
+      p_vtpl_data_structure->person_collapse_inter_event_generation_counter = 0;
+    }
+  }
   if (INFER_LEVEL_2 == eInferlevel) {
 
     // if (event_generation_counter < event_generation_th)
@@ -266,31 +370,62 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
     // }
     // cout << "Event publish " << event_generation_counter << endl;
 
-    if (event_generation_counter >= event_generation_th) {
-      is_event = true;
-      event_generation_counter = 0;
-    }
-
-    if (is_event) {
+    if (is_person_collapse_event) {
       /* Process inference for next stage */
-      int event_gap = frame_id - prev_pub_event_frame_id;
+      int event_gap = p_vtpl_data_structure->frame_id -
+                      p_vtpl_data_structure->prev_pub_event_frame_id;
 
       // cout << "Event gap " << event_gap << endl;
 
-      if (event_gap >= inter_event_generation_th) {
+      if (event_gap >=
+          p_vtpl_data_structure
+              ->person_collapse_inter_event_generation_gap_frame_number_th) {
         // o_vms_live_event_sender.start();
-        o_vms_live_event_sender.sendEventFromEncodedString(nullptr);
-        prev_pub_event_frame_id = frame_id;
+        // std::cout << "Hello GST" << std::endl;
+        unsigned long milliseconds_since_epoch =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        p_vtpl_data_structure->o_vms_live_event_sender
+            .sendEventFromEncodedString(nullptr, 0, 0, 0, 0, "", "", "", 242,
+                                        "", milliseconds_since_epoch, "", 0, 0,
+                                        48);
+
+        //
+        // p_vtpl_data_structure->o_vms_live_event_sender.sendEventFromEncodedMat(
+        //     mat_dst, 0, 0, 0, 0, "", "", "", 201, "",
+        //     milliseconds_since_epoch,
+        //     "", 0, 0, 16);
+
+        p_vtpl_data_structure->prev_pub_event_frame_id =
+            p_vtpl_data_structure->frame_id;
         char* label = strdup("Person/Collapse");
-        cout << "---------------------------------------" << endl;
-        cout << "Event Gap: [" << event_gap << "/" << inter_event_generation_th
-             << "]" << endl;
-        vtpl_event_generator(label, x, y, w, h, frame_id);
-        cout << "---------------------------------------" << endl;
+        // cout << "---------------------------------------" << endl;
+        // cout << "Event Gap: [" << event_gap << "/" <<
+        // inter_event_generation_th
+        //      << "]" << endl;
+        vtpl_event_generator(label, x, y, w, h,
+                             p_vtpl_data_structure->frame_id);
+        // cout << "---------------------------------------" << endl;
+
+        // std::cout << "+++++++++++PersonCollapse Event" << std::endl;
+        // std::stringstream ss;
+        // ss << "Personfalldetector" << p_vtpl_data_structure->frame_id;
+        // ss << ".jpeg";
+        // cv::Point p1(x, y);
+        // cv::Point p2(x + w, y + h);
+        // int thickness = 2;
+        // cv::rectangle(img, p1, p2, cv::Scalar(0, 0, 255), thickness,
+        // LINE_8,
+        // 0); cv::imwrite(ss.str().c_str(), img);
       }
     }
   }
-
+  if (is_final_person_collapse_event) {
+    std::cout << "+++++++++++++==publishing person collapse with x: " << x
+              << " with y: " << y << std::endl;
+    // p_vtpl_data_structure->o_vms_live_event_sender.sendEventFromEncodedMat()
+  }
   return 0;
 }
 
