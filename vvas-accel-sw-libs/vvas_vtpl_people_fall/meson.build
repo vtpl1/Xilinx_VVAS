@@ -1,5 +1,6 @@
 ########################################################################
 # Copyright 2020 - 2022 Xilinx, Inc.
+# Copyright 2023 Videonetics Technology Pvt Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +28,8 @@ vtpl_people_fall_event_generator = library('vvas_vtpl_people_fall',
     gst_dep, 
     gstvvasinfermeta_dep, 
     vvascore_dep,
-    vms_live_event_sender_lib_dep    
+    vms_live_event_sender_lib_dep,
+    nng_dep
   ],
   install : true,
 )

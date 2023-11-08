@@ -15,6 +15,10 @@ RUN apt update && apt install -y build-essential zlib1g-dev libncurses5-dev libg
     
 # RUN update-alternatives --install /usr/local/bin/python python /usr/local/bin/python3.11 3
 
-# RUN /usr/local/bin/pip3 install -U pip
-
+RUN pip3 install -U pip
+RUN apt-get -y install --no-install-recommends libfreeimage-dev python3-pip
+RUN pip install -U pip
+RUN pip install -U poetry
+RUN apt -y install --no-install-recommends libopencv-dev python3-opencv
+RUN pip install -U pynng
 ENV SHELL /bin/bash

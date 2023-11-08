@@ -24,6 +24,8 @@ private:
   std::string _url = "tcp://localhost:5001";
   nng_socket* _sock = nullptr;
   nng_duration _dur = 1000;
+  EventOutputV200 _event_output;
+  EventInfo _event_info_bytes;
 
 public:
   VmsLiveEventSender();

@@ -1,5 +1,6 @@
 /*
  * Copyright 2020-2022 Xilinx, Inc.
+ * Copyright 2023 Videonetics Technology Pvt Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@
 #include <gst/video/video.h>
 #include <gst/vvas/gstinferencemeta.h>
 #include <iostream>
+#include <job.h>
 #include <math.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -30,7 +32,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vvas/vvas_kernel.h>
+// #include <fmt/format.h>
 
+#include "include/rapidjson/document.h"
+#include "include/rapidjson/filereadstream.h"
 // int log_level = LOG_LEVEL_WARNING;
 
 using namespace cv;
@@ -66,7 +71,7 @@ typedef struct _VtplDataStructure {
   bool is_first_smoke_event = true;
 
 } VtplDataStructure;
-
+EventOutputV200 _job;
 static int vtpl_event_generator(VVASFrame* input, char* label, float confidence,
                                 int x, int y, int w, int h)
 {
@@ -95,10 +100,53 @@ uint32_t xlnx_kernel_deinit(VVASKernel* handle)
   return 0;
 }
 
+uint32_t xlnx_kernel_start1(VVASKernel* handle, int start,
+                            VVASFrame* input[MAX_NUM_OBJECT],
+                            VVASFrame* output[MAX_NUM_OBJECT])
+{
+  json_t* jconfig = handle->kernel_config;
+  json_t* val_app_id = json_object_get(jconfig, "app-id");
+  int app_id = 0;
+  if (!val_app_id || !json_is_integer(val_app_id)) {
+    std::cout << "::NO Value received FS " << std::endl;
+  } else {
+    app_id = json_integer_value(val_app_id);
+    std::cout << "::*****app_id FS " << app_id << std::endl;
+  }
+
+  json_t* val_channel_id = json_object_get(jconfig, "channel-id");
+  int channel_id = 0;
+  if (!val_channel_id || !json_is_integer(val_channel_id)) {
+    std::cout << "::NO Value received FS " << std::endl;
+  } else {
+    channel_id = json_integer_value(val_channel_id);
+    std::cout << "::channel_id FS " << channel_id << std::endl;
+  }
+
+  return 0;
+}
 uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
                            VVASFrame* input[MAX_NUM_OBJECT],
                            VVASFrame* output[MAX_NUM_OBJECT])
 {
+  json_t* jconfig = handle->kernel_config;
+  json_t* val_app_id = json_object_get(jconfig, "app-id");
+  int app_id = 0;
+  if (!val_app_id || !json_is_integer(val_app_id)) {
+    std::cout << "::NO Value received FS " << std::endl;
+  } else {
+    app_id = json_integer_value(val_app_id);
+    // std::cout << "::*****app_id FS " << app_id << std::endl;
+  }
+
+  json_t* val_channel_id = json_object_get(jconfig, "channel-id");
+  int channel_id = 0;
+  if (!val_channel_id || !json_is_integer(val_channel_id)) {
+    std::cout << "::NO Value received FS " << std::endl;
+  } else {
+    channel_id = json_integer_value(val_channel_id);
+    // std::cout << "::channel_id FS " << channel_id << std::endl;
+  }
   VtplDataStructure* p_vtpl_data_structure =
       (VtplDataStructure*)handle->kernel_priv;
 
@@ -313,23 +361,67 @@ uint32_t xlnx_kernel_start(VVASKernel* handle, int start,
     cv::Point p1(fe_x, fe_y);
     cv::Point p2(fe_x + fe_w, fe_y + fe_h);
     int thickness = 2;
+
+    // vtpl_event_generator(input[0], label, confidence, fe_x, fe_y, fe_w,
+    // fe_h);
+    std::stringstream ss;
+    ss << "FS_Detected" << p_vtpl_data_structure->frame_id;
+    ss << ".jpeg";
+    cv::rectangle(img, p1, p2, cv::Scalar(0, 240, 0), thickness, LINE_8, 0);
+    cv::imwrite(ss.str().c_str(), img);
+    // cv::imshow("frame", img);
+    // cv::waitKey(1);
+
+    // int appid{0};
+    // int channelid{0};
+    // try {
+    //   std::string path = "vn_fs_pc/firesmoke/json/xfilter_fire_smoke_" +
+    //                      std::to_string(_job.appId) + "_" +
+    //                      std::to_string(_job.channelId) + ".json";
+    //   // std::string path =
+    //   //
+    //   fmt::format("vn_fs_pc/firesmoke/json/xfilter_fire_smoke_{}_{}.json",Job.appID,Job.channelID);
+    //   // FILE* fp =
+    //   //
+    //   fopen(fmt::format("vn_fs_pc/firesmoke/json/xfilter_fire_smoke_{}_{}.json",_job.appId,_job.channelId),"r");
+    //   FILE* fp = fopen(path.c_str(), "r");
+    //   char readBuffer[65536];
+    //   rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+    //   rapidjson::Document d;
+    //   d.ParseStream(is);
+    //   fclose(fp);
+    //   appid = d["kernel"]["config"]["app_id"].GetInt();
+    //   channelid = d["kernel"]["config"]["channel_id"].GetInt();
+    //   std::cout << "******************app_id:" << appid
+    //             << " , channel_id: " << channelid << std::endl;
+    // } catch (const std::exception& ex) {
+    //   std::cout << "******************error:" << ex.what() << std::endl;
+    // }
+
     cv::rectangle(img, p1, p2, cv::Scalar(0, 240, 0), thickness, LINE_8, 0);
     p_vtpl_data_structure->o_vms_live_event_sender.sendEventFromEncodedMat(
-        img, 0, 0, 0, 0, "", "", "", 242, "", milliseconds_since_epoch, "", 0,
-        0, 48);
+        img, 0, 0, 0, 0, "", "", "", app_id, "", milliseconds_since_epoch, "",
+        0, 0, channel_id);
   }
-
+  // 242
   if (is_final_smoke_event) {
     std::cout << "*******publishing smoke event with se_x: " << se_x << " se_y "
               << se_y << std::endl;
     cv::Point p1(se_x, se_y);
     cv::Point p2(se_x + se_w, se_y + se_h);
     int thickness = 2;
+    std::stringstream ss;
+    ss << "SM_Detected" << p_vtpl_data_structure->frame_id;
+    ss << ".jpeg";
+    // cv::rectangle(img, p1, p2, cv::Scalar(0, 240, 0), thickness, LINE_8, 0);
+    // cv::imwrite(ss.str().c_str(), img);
+
     cv::rectangle(img, p1, p2, cv::Scalar(0, 240, 0), thickness, LINE_8, 0);
     p_vtpl_data_structure->o_vms_live_event_sender.sendEventFromEncodedMat(
-        img, 0, 0, 0, 0, "", "", "", 243, "", milliseconds_since_epoch, "", 0,
-        0, 48);
+        img, 0, 0, 0, 0, "", "", "", app_id, "", milliseconds_since_epoch, "",
+        0, 0, channel_id);
   }
+  // 243
   // if (fe_w > 0)
   //   vtpl_event_generator(input[0], flabel, fe_conf, fe_x, fe_y, fe_w, fe_h);
   // if (se_w > 0)

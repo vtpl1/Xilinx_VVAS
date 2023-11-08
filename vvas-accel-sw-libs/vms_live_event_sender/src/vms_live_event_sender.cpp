@@ -73,6 +73,8 @@ int VmsLiveEventSender::sendEventFromEncodedMat(
   _event_output.channelId = channelID;
   _event_output.stTimeStamp = time_stamp;
   _event_output.endTimeStamp = time_stamp;
+  // std::cout << "channel_id: " << _event_output.channelId
+  // << " app_id: " << _event_output.appId << std::endl;
 
   char* event_output_net = _event_output.toNetwork();
   char* event_info_net = _event_info.toNetwork();
@@ -111,6 +113,7 @@ int VmsLiveEventSender::sendEventFromEncodedMat(
   offset += EventInfo::size;
 
   ret = nng_send(*_sock, send_buff, send_buff_size, 0);
+  std::cout << " xilinx data sent " << send_buff_size << std::endl;
   delete send_buff;
 
   if (ret != 0) {
